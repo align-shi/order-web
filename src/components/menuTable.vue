@@ -18,19 +18,21 @@
 
 
             <el-table-column type="selection" width="60"></el-table-column>
-            <el-table-column prop="picture" label="菜品" align="center">
+            <el-table-column prop="name" label="菜名" show-overflow-tooltip width="200"></el-table-column>
+            <el-table-column prop="typeName" label="分类" show-overflow-tooltip width="200"></el-table-column>
+            <el-table-column prop="imageUrl" label="图片" align="center">
               <template slot-scope="scope">            
-                  <img :src="scope.row.picture"  min-width="70" height="70" />
+                  <img :src="scope.row.imgUrl"  min-width="70" height="70" />
               </template>  
             </el-table-column>
-            <el-table-column prop="dishes" label="菜名" show-overflow-tooltip width="200"></el-table-column>
-            <el-table-column prop="price" label="价格" width="100"></el-table-column>
+            <el-table-column prop="realPrice" label="价格" width="100"></el-table-column>
+            <el-table-column prop="price" label="vip价格" width="100"></el-table-column>
             
             <el-table-column label="操作">
             <template slot-scope="scope">
               <el-button size="mini" type=""  @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
-              <el-button size="mini" type="info" @click="handleChangeStatus(scope.$index, scope.row)" v-show="scope.row.status == 1">下架</el-button>
-              <el-button size="mini" type="success" @click="handleChangeStatus(scope.$index, scope.row)" v-show="scope.row.status == 2">上架</el-button>
+              <el-button size="mini" type="info" @click="handleChangeStatus(scope.$index, scope.row)" v-show="scope.row.stauts == 0">下架</el-button>
+              <el-button size="mini" type="success" @click="handleChangeStatus(scope.$index, scope.row)" v-show="scope.row.stauts == 3">上架</el-button>
               <el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">删除</el-button>
             </template>
           </el-table-column>
@@ -113,7 +115,7 @@ export default {
                 
                 msg:"",//记录每一条的信息，便于取id
                 delarr:[],//存放删除的数据
-                tableData: [{"dishes":"芒果班乾","price":58,"picture":"http://101.133.228.179:8080/pointpayment/pic/600002.jpg","status":2},
+                tableData: [{"dishes":"芒果班乾","price":58,"picture":"http://localhost:8080/upload/hxgdt.jpg","status":1},
                 {"dishes":"芒果班乾","price":58,"picture":"http://101.133.228.179:8080/pointpayment/pic/600002.jpg","status":1},
                 {"dishes":"芒果班乾","price":58,"picture":"http://101.133.228.179:8080/pointpayment/pic/600002.jpg","status":1},
                 {"dishes":"芒果班乾","price":58,"picture":"http://101.133.228.179:8080/pointpayment/pic/600002.jpg","status":1},
@@ -167,8 +169,10 @@ export default {
       },
       
       getTypeList(){
-        this.$axios.post('/type/list').then((res) =>{
-          this.typeList = res.data;
+        this.$axios.get('/type/list').then((res) =>{
+          let result = res.data;
+          console.log(result);
+          this.typeList = result.data;
           // alert(JSON.stringify(res.data));
         })
       },
@@ -188,12 +192,13 @@ export default {
       },
       getPackData() {
         this.$axios({
-            method: 'post',
-            url: '/menu/listByType',
-            params:{"type":this.type}
+            method: 'get',
+            url: '/product/list',
+            params:{"pageSize":this.pageSize,"pageNo":this.currentPage}
         }).then((res) => {
-            this.tableData = res.data;
-            this.total=this.tableData.length;
+          let result = res.data;
+          this.tableData = result.data.list;
+          this.total=this.tableData.length;
             // alert(JSON.stringify(res.data));
         }).catch(function(error){
             console.log(error);  
@@ -290,14 +295,13 @@ export default {
       handleChangeStatus:function(index,row){
         var that = this
         var status = 0;
-        if(row.status == 1){
-          status = 2;
-        }else{
-          status = 1;
+        if(row.status == 0){
+          status = 3;
         }
         
-        this.$axios.post('/menu/update',{id:row.id,status:status}).then((res) =>{
-          if(res.data == true){
+        this.$axios.post('/product/update',{id:row.id,stauts:status}).then((res) =>{
+          let result = res.data;
+          if(result.code == 0){
             this.$message.success('提交成功');
           }
           row.status = status;
