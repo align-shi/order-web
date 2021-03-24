@@ -5,15 +5,15 @@
       <el-col :span="5">
         <el-input v-model="findByName"  placeholder="请输入菜品名" ></el-input>
       </el-col>
-      <el-button  @click="findByNameButton" icon="el-icon-search">搜索</el-button>
+      <el-button  @click="getPackData" icon="el-icon-search">搜索</el-button>
 
-      <el-select  v-model="type" placeholder="菜品类别" autocomplete="off" @change="typeChange()"
+      <el-select  v-model="productType" placeholder="菜品类别" autocomplete="off" @change="typeChange()"
                   style="width: 30%">
         <el-option v-for="item in typeList" :key="item.id" :label="item.typeName"
-                    :value="item.typeName"></el-option>
+                    :value="item.id"></el-option>
       </el-select>
 
-        <el-table ref="multipleTable" :data="tableData.slice((currentPage-1)*pageSize,currentPage*pageSize)" border style="width: 100%" 
+        <el-table ref="multipleTable" :data="tableData" border style="width: 100%" 
             @selection-change="handleSelectionChange" :cell-style="cellStyle" :header-cell-style="rowClass">
 
 
@@ -74,16 +74,18 @@
           </el-upload>
 
           <el-form :model="editForm" label-width="80px" :rules="editFormRules" ref="editForm">
-            <el-form-item label="菜名" prop="dishes">
-              <el-input v-model="editForm.dishes" auto-complete="off"></el-input>
+            <el-form-item label="菜名" prop="name">
+              <el-input v-model="editForm.name" auto-complete="off"></el-input>
             </el-form-item>
-
-            <el-form-item label="价格" prop="price">
+            <el-form-item label="价格" prop="realPrice">
+              <el-input v-model="editForm.realPrice" auto-complete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="VIP价格" prop="price">
               <el-input v-model="editForm.price" auto-complete="off"></el-input>
             </el-form-item>
             
             <el-form-item label="菜品类别">
-              <el-select clearable size='mini' v-model="editForm.typeId" placeholder="菜品类别" autocomplete="off"
+              <el-select clearable size='mini' v-model="editForm.typeName" placeholder="菜品类别" autocomplete="off"
                       style="width: 50%">
               <el-option v-for="item in typeList" :key="item.id" :label="item.typeName"
                         :value="item.id"></el-option>
@@ -128,14 +130,16 @@ export default {
                 typeList:[
                   
                 ],
-                type:'',  //目前菜品类别
+                productType:'',  //目前菜品类别
                 fileList:[],
                 //编辑界面数据
                 editForm: {
-                  dishes:'',
+                  name:'',
                   price:'',
-                  picture:'',
-                  typeId:'',
+                  realPrice:'',
+                  imageUrl:'',
+                  productType:'',
+                  detail:'',
                 },
                 editLoading:false,
 
@@ -171,7 +175,6 @@ export default {
       getTypeList(){
         this.$axios.get('/type/list').then((res) =>{
           let result = res.data;
-          console.log(result);
           this.typeList = result.data;
           // alert(JSON.stringify(res.data));
         })
@@ -179,13 +182,13 @@ export default {
 
       findByNameButton(){
          this.$axios({
-            method: 'post',
-            url: '/menu/getByName',
+            method: 'get',
+            url: '/product/list',
             params:{"name":this.findByName}
         }).then((res) => {
-            this.tableData = res.data;
-            this.total=this.tableData.length;
-            // alert(JSON.stringify(res.data));
+          let result = res.data;
+          this.tableData = result.data.list;
+          this.total=result.data.total;
         }).catch(function(error){
             console.log(error);  
         })
@@ -194,11 +197,11 @@ export default {
         this.$axios({
             method: 'get',
             url: '/product/list',
-            params:{"pageSize":this.pageSize,"pageNo":this.currentPage}
+            params:{"pageSize":this.pageSize,"pageNo":this.currentPage,name:this.findByName,productType:this.productType}
         }).then((res) => {
           let result = res.data;
           this.tableData = result.data.list;
-          this.total=this.tableData.length;
+          this.total=result.data.total;
             // alert(JSON.stringify(res.data));
         }).catch(function(error){
             console.log(error);  
@@ -215,14 +218,14 @@ export default {
         var that = this;
         list.forEach((file) => {
             console.log(file);
-            formData.append('files',file);
+            formData.append('file',file);
         });
-        
+        let _this = this;
         formData.append('path','pic');
-        this.$axios.post('/file/uploadFile',formData).then((res) => {
+        this.$axios.post('/product/upload',formData).then((res) => {
             if(res.data!=null){
-              this.fileList= [];
-              this.editForm.picture = res.data[0];
+              _this.fileList= [];
+              _this.editForm.picture = res.data.data;
               // console.log(this.editForm.picture)
             }
         }).catch(function(error){
@@ -248,13 +251,14 @@ export default {
       handleSizeChange(val){
         this.pageSize = val;
         this.currentPage = 1;
+        this.getPackData();
         // this.fetchData(1, val);
         // console.log(`每页 ${val} 条`);
       },
       handleCurrentChange(val){
         this.currentPage = val;
-        // this.fetchData(val, this.pageSize);
-        // console.log(`当前页: ${val}`);
+        this.getPackData();
+        console.log(`当前页: ${val}`);
       },
       cellStyle({row,column,rowIndex,columnIndex}){
         return "text-align:center;" 
@@ -295,7 +299,7 @@ export default {
       handleChangeStatus:function(index,row){
         var that = this
         var status = 0;
-        if(row.status == 0){
+        if(row.stauts == 0){
           status = 3;
         }
         
@@ -303,8 +307,9 @@ export default {
           let result = res.data;
           if(result.code == 0){
             this.$message.success('提交成功');
+            this.getPackData();
           }
-          row.status = status;
+          //row.status = status;
         }).catch(function(error){
           console.log(error)
           that.$message.error('提交失败')
@@ -312,8 +317,9 @@ export default {
       },
       editMenu:function(para){
         // alert(JSON.stringify(para));
-        this.$axios.post('/menu/update',para).then((res) => {
-            if(res.data==true){
+        this.$axios.post('/product/update',para).then((res) => {
+          let result = res.data;
+            if(result.code==0){
               this.$message.success('提交成功');
             }
 
@@ -333,7 +339,7 @@ export default {
 						this.$confirm('确认提交吗？', '提示', {}).then(() => {
 							this.editLoading = true;
               //NProgress.start();
-              
+              console.log(this.editForm);
 							let para = Object.assign({}, this.editForm);
               
 							// para.publishingDate = (!para.publishingDate || para.publishingDate == '') ? '':util.formatDate.format(new Date(para.publishingDate), 'yyyy-MM-dd');

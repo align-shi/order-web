@@ -131,8 +131,9 @@ export default {
     methods: {
       getPackData() {
 
-        this.$axios.post('/type/list').then((res) =>{
-          this.tableData = res.data;
+        this.$axios.get('/type/list').then((res) =>{
+         let result = res.data;
+          this.tableData = result.data;
           this.total=this.tableData.length;
           // alert(JSON.stringify(res.data));
         })
