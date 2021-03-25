@@ -9,7 +9,7 @@
 
 
             <el-table-column type="selection" width="60"></el-table-column>
-            <el-table-column prop="typeName" label="类别名" show-overflow-tooltip width="200"></el-table-column>    
+            <el-table-column prop="typeName" label="种类名称" show-overflow-tooltip width="200"></el-table-column>    
             <el-table-column label="操作">
                 <template slot-scope="scope">
                 <el-button size="mini" type=""  @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
@@ -43,9 +43,9 @@
         <el-dialog title="编辑" :visible.sync="editFormVisible" :close-on-click-modal="false">
 
           <el-form :model="editForm" label-width="100px" :rules="editFormRules" ref="editForm">
-            <el-form-item label="菜品类别名" prop="typeName">
-              <el-input v-model="editForm.typeName" auto-complete="off"></el-input>
-            </el-form-item>            
+            <el-form-item label="类别名:" prop="typeName">
+              <el-input v-model="editForm.typeName" auto-complete="off" style="width:70%"></el-input>
+            </el-form-item>       
           </el-form>
 
         <div slot="footer" class="dialog-footer">
@@ -58,9 +58,15 @@
         <el-dialog title="新添" :visible.sync="addFormVisible" :close-on-click-modal="false">
 
           <el-form :model="addForm" label-width="100px" :rules="addFormRules" ref="addForm">
-            <el-form-item label="菜品类别名" prop="typeName">
+            <el-form-item label="类别名" prop="typeName">
               <el-input v-model="addForm.typeName" auto-complete="off"></el-input>
-            </el-form-item>            
+            </el-form-item>  
+            <el-form-item label="排序等级" prop="sort">
+              <el-input v-model="addForm.sort" auto-complete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="备注" prop="remark">
+              <el-input v-model="addForm.remark" auto-complete="off"></el-input>
+            </el-form-item>        
           </el-form>
 
         <div slot="footer" class="dialog-footer">
@@ -183,33 +189,40 @@ export default {
       },
       deleteRow(){
           
-       
+       let ids = [];
         if(this.selection.length!=0){
             for(var i = 0,len = this.selection.length;i<len;i++){
-                
-                this.$axios({
+                ids.push(this.selection[i].id); 
+            }
+            this.$axios({
                     method: 'post',
                     url: '/type/delete',
-                    params:{"id":this.selection[i].id}
+                    params:{"ids":ids}
                 }).then((res) => {
-                    if(res.data==true){
+                    let result = res.data;
+                    if(result.code==0){
                     this.getPackData();
                     this.$message.success('删除成功');
+                    }else{
+                      this.$message.error('删除失败');
                     }
                 }).catch(function(error){
                     console.log(error);  
                 })
-            }
-        }else{
+        }
+        else{
             this.$axios({
                 method: 'post',
                 url: '/type/delete',
-                params:{"id":this.delarr[0]}
+                params:{"ids":this.delarr[0]}
             }).then((res) => {
-                if(res.data==true){
+                let result = res.data;
+                    if(result.code==0){
                     this.getPackData();
                     this.$message.success('删除成功');
-                }
+                    }else{
+                      this.$message.error('删除失败');
+                    }
             }).catch(function(error){
                 console.log(error);  
             })
@@ -228,10 +241,12 @@ export default {
       editType:function(para){
         var that = this
         this.$axios.post('/type/update',para).then((res) => {
-            if(res.data==true){
+          let result = res.data;
+            if(result.code==0){
               this.$message.success('提交成功');
+            }else{
+              that.$message.error('修改失败');
             }
-
             this.$refs['editForm'].resetFields();
             this.editFormVisible = false;
             this.getPackData();
@@ -244,9 +259,12 @@ export default {
       },
       addType:function(para){
         var that = this
-        this.$axios.post('/type/insert',para).then((res) => {
-            if(res.data!=null){
+        this.$axios.post('/type/add',para).then((res) => {
+          let result = res.data;
+            if(result.code == 0){
               this.$message.success('提交成功');
+            }else{
+              this.$message.error('添加失败');
             }
 
             that.$refs['addForm'].resetFields();
