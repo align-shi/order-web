@@ -12,7 +12,7 @@ Vue.config.productionTip = false
 
 // 引用axios，并设置基础URL为后端服务api地址
 var axios = require('axios')
-axios.defaults.baseURL = 'http://192.168.42.87:8080'
+axios.defaults.baseURL = 'http://localhost:8080'
 // 'http://101.133.228.179:8082/api'  localhost hfuu.top:8443
 
 // 将API方法绑定到全局

@@ -1,178 +1,189 @@
 <template>
-    <div class="form">
-        <el-upload
-            class="upload"
-            action=""
-            list-type="picture-card"
-            :on-preview="handlePictureCardPreview"
-            :on-remove="handleRemove"
-            :limit = 1
-            :before-upload="UpladFile"
-            >
-            <!--  :on-change="saveFile"  :auto-upload="false"  :on-change="saveFile" :auto-upload="false" :before-upload="UpladFile" -->
-            <i class="el-icon-plus"></i>
-        </el-upload>
-        <el-dialog :visible.sync="dialogVisible">
-            <img width="100%" :src="dialogImageUrl" alt="">
-        </el-dialog>
-
-        <el-form :model="form" label-width="80px" :rules="formRules" ref="form">
-            <el-form-item label="餐馆名" prop="name">
-                <el-input v-model="form.name" auto-complete="off" style="width:20%"></el-input>
-            </el-form-item>
-
-            <el-form-item label="电话" prop="phone">
-                <el-input v-model="form.phone" auto-complete="off" style="width:20%"></el-input>
-            </el-form-item>
-
-            <el-form-item label="地址" prop="address">
-                <el-input v-model="form.address" auto-complete="off" style="width:25%"></el-input>
-            </el-form-item>
-
-            <el-form-item label="详细信息" prop="info">
-                <el-input type="textarea" v-model="form.info" 
-                style="width:80%" autosize maxlength="120" show-word-limit placeholder="餐馆详细介绍">
-                </el-input>
-            </el-form-item>
-
-            <el-form-item label="营业时间" prop="time">
-                <el-input  placeholder="例如: 8:00 -- 21:00" v-model="form.time" style="width:25%">
-                </el-input>
-            </el-form-item>
+    <div>
+        <div style="margin-bottom: 1em;">
+            <!-- <el-col :span="2">
+                <el-input v-model="order.tablenumber"  placeholder="请输入桌号名"></el-input>
+            </el-col> -->
         
-        </el-form>
-
-        <div class="buttons">
-            <el-button type="primary" @click.native="submit" :loading="submitLoading">提交</el-button>
-            <el-button @click.native="clean" style="margin-left:5em;">取消</el-button>
+            <el-col :span="5" >
+                <el-input v-model="wxaccount"  placeholder="顾客微信名" ></el-input>
+            </el-col>
+            <el-button @click="search" icon="el-icon-search">搜索</el-button>
         </div>
+
+
+        <el-table ref="multipleTable" :data="tableData" border style="width: 100%" 
+            @selection-change="handleSelectionChange" :cell-style="cellStyle" :header-cell-style="rowClass">
+
+
+            <el-table-column prop="create_user" label="反馈人" show-overflow-tooltip min-width="10%"></el-table-column>
+            <el-table-column prop="create_user" label="反馈内容" align="center" min-width="20%"></el-table-column>
+            <el-table-column prop="content" label="联系方式" show-overflow-tooltip min-width="10%"></el-table-column>
+            <el-table-column prop="create_time" label="反馈时间" min-width="10%"></el-table-column>
+            <el-table-column prop="device_model" label="设备类型" min-width="30%"></el-table-column>
+           <el-table-column prop="app_version" label="app类型" min-width="20%"></el-table-column>
+           
+          
+
+            <!-- <el-table-column label="操作">
+            <template slot-scope="scope">
+                <el-button type="warning" plain @click="handleChangeStatus(scope.$index, scope.row)" v-show="scope.row.status == 1">
+                  请求处理    <i class="el-icon-loading"></i>
+                </el-button>
+                <div v-show="scope.row.status == 2"> 已处理&#12288;<i class="el-icon-check"></i></div>
+                 <i class="el-icon-check" v-show="scope.row.status == 2"></i> 
+            </template>
+          </el-table-column> -->
+        </el-table>
+
+        <el-pagination background
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+            :current-page="currentPage"
+            :page-sizes="[5,10,50, 100]"
+            :page-size="pageSize"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="total">
+        </el-pagination>
     </div>
 </template>
-<script>
-    export default {
 
-        data(){
-            return{
-                dialogVisible:false,
-                dialogImageUrl:'',
-                fileList:[],        //文件列表
-                form: {             //提交表单
-                  name:'',
-                  pic:'',
-                  address:'',
-                  phone:'',
-                  info:'',
-                  time:'',
-                },
-                submitLoading:false,
-                uploadingFile:false,
-                //表单验证
-                formRules: {
-                  name: [
-                    { required: true, message: '需要设置餐馆名称', trigger: 'blur' },
-                  ],
-                  phone: [
-                    { required: true, message: '需要输入电话号码', trigger: 'blur' },
-                  ],
-                  address:[
-                    { required: true, message: '需要输入餐馆地址', trigger: 'blur' },
-                  ],
-                  info:[
-                    { required: true, message: '需要输入餐馆介绍', trigger: 'blur' },
-                  ],
-                  time:[
-                      { required: true, message: '请输入餐馆营业时间', trigger: 'blur' },
-                  ]
-                },
-            }
-        },
-        created:function(){
-            this.getData();
-        },
-        methods: {
-            getData(){
-                var that = this;
-                this.$axios({
-                    method: 'post',
-                    url: '/hotel/info',
-                    params:{"id":500003}
-                }).then((res) => {
-                    that.form = res.data
-                }).catch(function(error){
-                    console.log(error);  
-                })
-            },
-            submit(){
-                this.$refs.form.validate((valid) => {
-					if (valid) {
-						this.$confirm('确认提交吗？', '提示', {}).then(() => {
-                        this.submitLoading = true;
-                        let para = Object.assign({}, this.form);
-							// para.publishingDate = (!para.publishingDate || para.publishingDate == '') ? '':util.formatDate.format(new Date(para.publishingDate), 'yyyy-MM-dd');
-                            this.submitHotel(para);
-						});
-					}
-				});
-            },
-            submitHotel:function(para){
-               
-                this.$axios.post('/hotel/update',para).then((res) => {
-                    if(res.data!=null){
-                        this.$message.success('提交成功');
-                    }
-                    // this.$refs['form'].resetFields();
-                    this.submitLoading = false;
-                        
-                }).catch(function(error){
-                        console.log(error);
-                })
-            },
-            handleRemove(file, fileList) {
-                console.log(file, fileList);
-            },
-            handlePictureCardPreview(file) {
-                this.dialogImageUrl = file.url;
-                this.dialogVisible = true;
-            },
-            UpladFile(file){
-                this.fileList = [...this.fileList,file];
-                const formData = new FormData();
-                var list = this.fileList;
-                var that = this;
-                list.forEach((file) => {
-                    formData.append('files',file);
-                });
-    
-                formData.append('path','logo');
-                this.$axios.post('/file/uploadFile',formData).then((res) => {
-                    if(res.data!=null){
-                        this.form.pic = res.data[0];
-                        that.$message.success('文件提交成功');
-                    }
-                }).catch(function(error){
-                    that.$message.error('文件提交失败');
-                })
-              
-            }
-        },
-        computed: {
-           
+<script>
+export default {
+    data(){
+        return {
+
+                total:5,
+                currentPage: 1,
+　　　　　　　　　pageSize: 5,
+                
+                msg:"",//记录每一条的信息，便于取id
+       
+                tableData: [],
+                multipleSelection: [],
+                wxaccount:''
+        
         }
+    },
+    
+    created: function(){
+      this.getPackData();
+    },
+
+    mounted() {
+			this.getPackData();
+    },
+    methods: {
+     
+      getPackData() {
+          
+        this.$axios({
+            method: 'get',
+            url: '/user/getFeedback',
+            params:{"pageSize":this.pageSize,"pageNo":this.currentPage,"username":this.wxaccount}
+        }).then((res) => {
+            let result = res.data;
+            if(result.code == 0){
+            this.tableData = result.data.list;
+            this.total=result.data.total;
+            }
+            // alert(JSON.stringify(res.data));
+        }).catch(function(error){
+            console.log(error);  
+        })
+        
+      },
+      search(){
+        this.$axios({
+            method: 'get',
+            url: '/user/getFeedback',
+            params:{"pageSize":this.pageSize,"pageNo":this.currentPage,"username":this.wxaccount}
+        }).then((res) => {
+            let result = res.data;
+            if(result.code == 0){
+            this.tableData = result.data.list;
+            this.total=result.data.total;
+            }
+            // alert(JSON.stringify(res.data));
+        }).catch(function(error){
+            console.log(error);  
+        })
+      },
+      toggleSelection(rows) {
+          if (rows) {
+              rows.forEach(function(row)  {
+                  this.$refs.multipleTable.toggleRowSelection(row);
+              });
+          } else {
+              this.$refs.multipleTable.clearSelection();
+          }
+      },
+      handleSelectionChange(val) {
+          this.multipleSelection = val;
+      },
+      callbackFunction(result) {
+                alert(result + "aaa");
+            },
+      handleSizeChange(val){
+        this.pageSize = val;
+        this.currentPage = 1;
+        if(this.wxaccount != ''){
+            this.search();
+        }else{
+            this.getPackData();
+        }
+        // this.fetchData(1, val);
+        // console.log(`每页 ${val} 条`);
+      },
+      handleCurrentChange(val){
+        this.currentPage = val;
+        if(this.wxaccount != ''){
+            this.search();
+        }else{
+            this.getPackData();
+        }
+        // this.fetchData(val, this.pageSize);
+        // console.log(`当前页: ${val}`);
+      },
+      cellStyle({row,column,rowIndex,columnIndex}){
+        return "text-align:center;" 
+      },
+      rowClass({row,rowIndex}){
+        return "text-align:center;" 
+      },
+
+      handleChangeStatus:function(index,row){
+
+        this.$axios({
+            method: 'post',
+            url: '/order/handleOrder',
+            params:{id:row.id}
+        }).then((res) =>{
+          if(res.data == true){
+            this.$message.success('处理成功');
+          }
+          row.status = 2;
+        }).catch(function(error){
+          console.log(error)
+          that.$message.error('处理失败')
+        })
+        
+      }
+     
     }
+
+} 
 </script>
 <style>
+    .el-table th {
+        text-align: center;
+    }
+
+    /* .el-table tbody tr td:first-child {
+        text-align: center;
+    } */
     .upload{
       margin-left: 6em;
       margin-bottom: 2em;
-    }
-
-    .form{
-        margin-top:0%;
-        margin-left:10%;
-    }
-
-    .buttons{
-        margin-top:4em;
-        margin-left:5em;
     }
 </style>

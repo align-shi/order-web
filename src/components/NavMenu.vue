@@ -32,8 +32,9 @@
             return {
                 isCollapse: false,
                 navList:[
-                    {name:'/hotelTable',navItem:'餐馆详情'},
-                    {name:'/orderTable',navItem:'订单流水'},
+                    
+                    {name:'/orderTable',navItem:'订单查询'},
+                    {name:'/hotelTable',navItem:'反馈信息'},
                     {name:'1',navItem:'菜品管理',
                         second:[{name:'/menuTable',navItem:'菜品列表'},
                                 {name:'/createMenu',navItem:'新添菜品'},
