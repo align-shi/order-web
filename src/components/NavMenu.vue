@@ -35,6 +35,7 @@
                     
                     {name:'/orderTable',navItem:'订单查询'},
                     {name:'/hotelTable',navItem:'反馈信息'},
+                    {name:'/vipTable',navItem:'用户管理'},
                     {name:'1',navItem:'菜品管理',
                         second:[{name:'/menuTable',navItem:'菜品列表'},
                                 {name:'/createMenu',navItem:'新添菜品'},
